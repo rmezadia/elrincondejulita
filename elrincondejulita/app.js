@@ -8,48 +8,67 @@ const PrismicDOM = require('prismic-dom');
 const app = require('./config');
 const PrismicConfig = require('./prismic-configuration');
 const PORT = app.get('port');
-const UIhelpers = require('./includes/UIhelpers');
+
+function render404(req, res) {
+  res.status(404);
+  res.render('404');
+}
 
 app.listen(PORT, () => {
   process.stdout.write(`Point your browser to: http://localhost:${PORT}\n`);
 });
 
-// Middleware to connect to inject prismic context
+// Middleware to inject prismic context
 app.use((req, res, next) => {
   res.locals.ctx = {
     endpoint: PrismicConfig.apiEndpoint,
-    linkResolver: PrismicConfig.linkResolver,
+    snipcartKey: PrismicConfig.snipcartKey,
+    linkResolver: PrismicConfig.linkResolver
   };
-  
-  // Add UI helpers to access them in templates
-  res.locals.UIhelpers = UIhelpers;
-  
-  // Add PrismicDOM in locals to access them in templates
+  // add PrismicDOM in locals to access them in templates.
   res.locals.PrismicDOM = PrismicDOM;
-  
-  // Add the prismic.io API to the req
-  Prismic.api(PrismicConfig.apiEndpoint, {
-    accessToken: PrismicConfig.accessToken,
-    req,
-  }).then((api) => {
+  Prismic.api(PrismicConfig.apiEndpoint,{ accessToken: PrismicConfig.accessToken, req: req })
+  .then((api) => {
     req.prismic = { api };
     next();
-  }).catch((error) => {
-    next(error.message);
+  }).catch(function(err) {
+    if (err.status == 404) {
+      res.status(404).send('There was a problem connecting to your API, please check your configuration file for errors.');
+    } else {
+      res.status(500).send('Error 500: ' + err.message);
+    }
   });
 });
+
+
+// Query the site layout with every route 
+app.route('*').get((req, res, next) => {
+  req.prismic.api.getSingle('layout').then(function(layoutContent){
+    
+    // Give an error if no layout custom type is found
+    if (!layoutContent) {
+      res.status(500).send('No Layout document was found.');
+    }
+    
+    // Define the layout content
+    res.locals.layoutContent = layoutContent;
+    next();
+  });
+});
+
 
 /*
  * -------------- Routes --------------
  */
 
-/**
-* Preconfigured prismic preview
-*/
+/*
+ * Preconfigured prismic preview
+ */
 app.get('/preview', (req, res) => {
   const token = req.query.token;
   if (token) {
-    req.prismic.api.previewSession(token, PrismicConfig.linkResolver, '/').then((url) => {
+    req.prismic.api.previewSession(token, PrismicConfig.linkResolver, '/')
+    .then((url) => {
       res.redirect(302, url);
     }).catch((err) => {
       res.status(500).send(`Error 500 in preview: ${err.message}`);
@@ -59,62 +78,94 @@ app.get('/preview', (req, res) => {
   }
 });
 
-
-/**
-* Route for blog homepage
-*/
-app.get(['/', '/blog'], (req, res) =>
-
-  // Query the homepage
-  req.prismic.api.getSingle("blog_home").then((bloghome) => {
+/*
+ * Route for the product pages
+ */
+app.route('/product/:uid').get(function(req, res) {
+  
+  // Get the page url needed for snipcart
+  var pageUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+  
+  // Define the UID from the url
+  var uid = req.params.uid;
+  
+  // Query the product by its UID
+  req.prismic.api.getByUID('product', uid).then(function(productContent) {
     
-    // If a document is returned...
-    if (bloghome) {
-
-      var queryOptions = {
-        page: req.params.p || '1',
-        orderings: '[my.post.date desc]'
-      };
-
-      // Query the posts
-      req.prismic.api.query(
-        Prismic.Predicates.at("document.type", "post"),
-        queryOptions
-      ).then(function(response) {
-        
-        // Render the blog homepage
-        res.render('bloghome', {
-          bloghome,
-          posts : response.results
-        });
-      });
-
-    } else {
-      // If a bloghome document is not returned, display the 404 page
-      res.status(404).render('404');
+    // Render the 404 page if this uid is found
+    if (!productContent) {
+      render404(req, res);
     }
-  })
-);
-
-
-/**
-* Route for blog posts
-*/
-app.get('/blog/:uid', (req, res) => {
-
-  // Define the uid from the url
-  const uid = req.params.uid;
-
-  // Query the post by its uid
-  req.prismic.api.getByUID('post', uid).then(post => {
-
-    if (post) {
-      // If a document is returned, render the post
-      res.render('post', { post });
+    
+    // Collect all the related product IDs for this product
+    var relatedProducts = productContent.data.relatedProducts;
+    var relatedIDs = relatedProducts.map((relatedProduct) => {
+      var link = relatedProduct.link;
+      return link ? link.id : null;
+    }).filter((id) => id !== null && id !== undefined);
+    
+    //Query the related products by their IDs
+    req.prismic.api.getByIDs(relatedIDs).then(function(relatedProducts) {
       
-    // Else display the 404 page
-    } else {
-      res.status(404).render('404');
-    }
+      // Render the product page
+      res.render('product', {
+        productContent: productContent,
+        relatedProducts: relatedProducts,
+        pageUrl: pageUrl
+      });
+    });
   });
 });
+
+
+// Route for categories
+app.route('/category/:uid').get(function(req, res) {
+  
+  // Define the UID from the url
+  var uid = req.params.uid;
+  
+  // Query the category by its UID
+  req.prismic.api.getByUID('category', uid).then(function(category) {
+    
+    // Render the 404 page if this uid is found
+    if (!category) {
+      render404(req, res);
+    }
+    
+    // Define the category ID 
+    var categoryID = category.id;
+    
+    // Query all the products linked to the given category ID
+    req.prismic.api.query([
+        Prismic.Predicates.at('document.type', 'product'),
+        Prismic.Predicates.at('my.product.categories.link', categoryID)
+      ], { orderings : '[my.product.date desc]'}
+    ).then(function(products) {
+      
+      // Render the listing page
+      res.render('listing', {products: products.results});
+    });
+  });
+});
+
+
+// Route for the homepage
+app.route('/').get(function(req, res) {
+  
+  // Query all the products and order by their dates
+  req.prismic.api.query(
+    Prismic.Predicates.at('document.type', 'product'),
+    { orderings : '[my.product.date desc]'}
+  ).then(function(products) {
+
+    // Render the listing page
+    res.render('listing', {products: products.results});
+  });
+});
+
+
+// Route that catches any other url and renders the 404 page
+app.route('/:url').get(function(req, res) {
+  render404(req, res);
+});
+

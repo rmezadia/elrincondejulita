@@ -1,14 +1,14 @@
-## Sample Blog with API-based CMS
+## Sample eCommerce Website with API-based CMS
 
-Node.js blog is a blog template with content managed in prismic.io (an API-based CMS).
+This is a sample Node.js eCommerce website with content managed with prismic.io (API-based CMS).
 
 #### Getting started
 
-Read [this guide](https://intercom.help/prismicio/examples/nodejs-samples/sample-blog-with-api-based-cms-in-nodejs) for instructions to create your repository and use the sample blog.
+Read [this guide](https://intercom.help/prismicio/examples/nodejs-samples/sample-ecommerce-site-with-snipcart-in-nodejs) for instructions to create your repository and use this sample eCommerce site.
 
-#### Deploy your Node.js blog
+#### Deploy your Node.js website
 
-An easy way to deploy your Node.js blog is to use [Heroku](http://www.heroku.com). Just follow these few simple steps once you have successfully [signed up](https://id.heroku.com/signup/www-header) and [installed the Heroku toolbelt](https://toolbelt.heroku.com/):
+An easy way to deploy your Node.js website is to use [Heroku](http://www.heroku.com). Just follow these few simple steps once you have successfully [signed up](https://id.heroku.com/signup/www-header) and [installed the Heroku toolbelt](https://toolbelt.heroku.com/):
 
 Create a new Heroku application
 
@@ -47,7 +47,7 @@ $ heroku open
 
 This software is licensed under the Apache 2 license, quoted below.
 
-Copyright 2017 Prismic.io (http://prismic.io).
+Copyright 2017 Prismic.io (http://www.prismic.io).
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this project except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
 
