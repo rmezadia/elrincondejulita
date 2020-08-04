@@ -1,7 +1,7 @@
 ## Sample eCommerce Website with API-based CMS
 
 Snipcart + Prismic + Nodejs + Heroku. 
-Demo by me: https://elrincondejulitaofficial.herokuapp.com/
+Web developed by me: https://elrincondejulitaofficial.herokuapp.com/
 This is a sample Node.js eCommerce website with content managed with prismic.io (API-based CMS).
 
 #### Getting started
