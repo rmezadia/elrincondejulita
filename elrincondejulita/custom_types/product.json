@@ -59,7 +59,7 @@
       "type" : "Number",
       "fieldset" : "Price",
       "config" : {
-        "label" : "USD",
+        "label" : "EUR",
         "min" : 1,
         "placeholder" : "Insert Price..."
       }
