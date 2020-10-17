@@ -9,10 +9,10 @@ header
   div.utility-nav
     ul
       li 
-        a(href="#") Help
+        a(href="#") Ayuda
         | &nbsp|&nbsp
       li 
-        a(href="#") Contact Us
+        a(href="#") Contáctanos
         | &nbsp|&nbsp
       li 
         a(href="#" class="snipcart-checkout")
@@ -29,7 +29,7 @@ nav.main-nav
   - var mainNav = layoutContent ? layoutContent.data.mainNav : []
   ul
     li
-      a(href="/") Everything
+      a(href="/") Home
     each mainLink in mainNav
       - var mainURL = PrismicDOM.Link.url(mainLink.link, ctx.linkResolver)
       li 
